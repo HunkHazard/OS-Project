@@ -201,6 +201,78 @@ static int execute_aux(struct tree *t, int p_input_fd, int p_output_fd)
             fprintf(stderr, "cp: missing file operand\n");
          }
       }
+      /* check if user wants system information */
+      /* else if (strcmp(t->argv[0], "sysinfo") == 0)
+       {
+          struct sysinfo s_info;
+          if (sysinfo(&s_info) == 0)
+          {
+             printf("Uptime: %ld\n", s_info.uptime);
+             printf("Load averages: %ld, %ld, %ld\n", s_info.loads[0], s_info.loads[1], s_info.loads[2]);
+             printf("Total RAM: %ld\n", s_info.totalram);
+             printf("Free RAM: %ld\n", s_info.freeram);
+             printf("Process count: %d\n", s_info.procs);
+          }
+          else
+          {
+             perror("sysinfo");
+          }
+       }*/
+      /* check if user wants system name */
+      /*else if (strcmp(t->argv[0], "uname") == 0)
+       {
+          struct utsname u_name;
+          if (uname(&u_name) == 0)
+          {
+             printf("System name: %s\n", u_name.sysname);
+             printf("Node name: %s\n", u_name.nodename);
+             printf("Release: %s\n", u_name.release);
+             printf("Version: %s\n", u_name.version);
+             printf("Machine: %s\n", u_name.machine);
+          }
+          else
+          {
+             perror("uname");
+          }
+       }*/
+
+      /* check if user wants the hostname */
+      else if (strcmp(t->argv[0], "gethostname") == 0)
+      {
+         char hostname[1024];
+         if (gethostname(hostname, sizeof(hostname)) == 0)
+         {
+            printf("Hostname: %s\n", hostname);
+         }
+         else
+         {
+            perror("gethostname");
+         }
+      }
+
+      /* check if user wants the process ID */
+      else if (strcmp(t->argv[0], "getpid") == 0)
+      {
+         pid_t pid = getpid();
+         printf("Process ID: %d\n", pid);
+      }
+      /* check if user wants resource usage */
+      /*else if (strcmp(t->argv[0], "getrusage") == 0)
+      {
+         struct rusage usage;
+         if (getrusage(RUSAGE_SELF, &usage) == 0)
+         {
+            printf("User CPU time used: %ld seconds\n", usage.ru_utime.tv_sec);
+            printf("System CPU time used: %ld seconds\n", usage.ru_stime.tv_sec);
+            printf("Maximum resident set size: %ld\n", usage.ru_maxrss);
+            printf("Page reclaims (soft page faults): %ld\n", usage.ru_minflt);
+            printf("Page faults (hard page faults): %ld\n", usage.ru_majflt);
+         }
+         else
+         {
+            perror("getrusage");
+         }
+      }*/
 
       /*-----------------------------------------------------------------------------------*/
 
