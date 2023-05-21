@@ -276,128 +276,54 @@ static int execute_aux(struct tree *t, int p_input_fd, int p_output_fd)
          }
       }
       /*------------------------------------------------------------------------------------*/
-      else if (strcmp(t->argv[0], "reverse_string") == 0)
+      /*convert the text into its corresponding ascii values*/
+      else if (strcmp(t->argv[0], "numify") == 0)
       {
-         char *str = t->argv[1];
-         int len = strlen(str);
-         char *reverse = malloc(len + 1);
-         int i;
-         for (i = 0; i < len; i++)
+         if (t->argv[1] != NULL)
          {
-            reverse[i] = str[len - 1 - i];
-         }
-         reverse[len] = '\0';
-         printf("%s\n", reverse);
-         free(reverse);
-      }
 
-      else if (strcmp(t->argv[0], "is_palindrome") == 0)
-      {
-         char *str = t->argv[1];
-         int len = strlen(str);
-         int i;
-         for (i = 0; i < len / 2; i++)
-         {
-            if (str[i] != str[len - 1 - i])
+            char chr;
+            FILE *file = fopen(t->argv[1], "r");
+            if (file == NULL)
             {
-               printf("No\n");
+               perror("fopen");
                return;
             }
-         }
-         printf("Yes\n");
-      }
 
-      else if (strcmp(t->argv[0], "count_chars") == 0)
-      {
-         char *str = t->argv[1];
-         printf("%ld\n", strlen(str));
-      }
-
-      else if (strcmp(t->argv[0], "to_uppercase") == 0)
-      {
-         char *str = t->argv[1];
-         int i;
-         for (i = 0; str[i]; i++)
-         {
-            str[i] = toupper(str[i]);
-         }
-         printf("%s\n", str);
-      }
-
-      else if (strcmp(t->argv[0], "to_lowercase") == 0)
-      {
-         char *str = t->argv[1];
-         int i;
-         for (i = 0; str[i]; i++)
-         {
-            str[i] = tolower(str[i]);
-         }
-         printf("%s\n", str);
-      }
-
-      else if (strcmp(t->argv[0], "find_max") == 0)
-      {
-         int arr[10];
-         int max = INT_MIN;
-         int i;
-         for (i = 1; i < 11; i++)
-         {
-            arr[i - 1] = atoi(t->argv[i]);
-            if (arr[i - 1] > max)
+            while ((chr = fgetc(file)) != EOF)
             {
-               max = arr[i - 1];
+               printf("%d ", chr);
             }
+            fclose(file);
          }
-         printf("%d\n", max);
       }
 
-      else if (strcmp(t->argv[0], "sort_asc") == 0)
+      else if (strcmp(t->argv[0], "addfile") == 0)
       {
-         int arr[10];
-         int i;
-         for (i = 1; i < 11; i++)
+         if (t->argv[1] != NULL && t->argv[2] != NULL && t->argv[3] != NULL)
          {
-            arr[i - 1] = atoi(t->argv[i]);
-         }
-         qsort(arr, 10, sizeof(int), compare_asc);
-         int i;
-         for (i = 0; i < 10; i++)
-         {
-            printf("%d ", arr[i]);
-         }
-         printf("\n");
-      }
-
-      else if (strcmp(t->argv[0], "factorial") == 0)
-      {
-         int num = atoi(t->argv[1]);
-         long long fact = 1;
-         int i;
-         for (i = 2; i <= num; i++)
-         {
-            fact *= i;
-         }
-         printf("%lld\n", fact);
-      }
-
-      else if (strcmp(t->argv[0], "is_prime") == 0)
-      {
-         int num = atoi(t->argv[1]);
-         if (num < 2)
-         {
-            printf("No\n");
-            return;
-         }
-         int i;
-         for (i = 2; i * i <= num; i++)
-         {
-            if (num % i == 0)
+            int fd1 = open(t->argv[1], O_RDONLY);
+            int fd2 = open(t->argv[2], O_RDONLY);
+            int fd3 = open(t->argv[3], O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+            if (fd1 == -1 || fd2 == -1 || fd3 == -1)
             {
-               printf("No\n");
+               perror("open");
                return;
             }
+            char buf[1024];
+            ssize_t len;
+            while ((len = read(fd1, buf, 1024)) > 0)
+            {
+               write(fd3, buf, len);
+            }
+            while ((len = read(fd2, buf, 1024)) > 0)
+            {
+               write(fd3, buf, len);
+            }
+            close(fd1);
+            close(fd2);
+            close(fd3);
          }
-         printf("Yes\n");
       }
 
       /*-----------------------------------------------------------------------------------*/
