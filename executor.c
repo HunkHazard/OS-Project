@@ -1,5 +1,7 @@
 
-
+#include <sys/sysinfo.h>
+#include <sys/utsname.h>
+#include <sys/resource.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "command.h"
@@ -202,39 +204,39 @@ static int execute_aux(struct tree *t, int p_input_fd, int p_output_fd)
          }
       }
       /* check if user wants system information */
-      /* else if (strcmp(t->argv[0], "sysinfo") == 0)
-       {
-          struct sysinfo s_info;
-          if (sysinfo(&s_info) == 0)
-          {
-             printf("Uptime: %ld\n", s_info.uptime);
-             printf("Load averages: %ld, %ld, %ld\n", s_info.loads[0], s_info.loads[1], s_info.loads[2]);
-             printf("Total RAM: %ld\n", s_info.totalram);
-             printf("Free RAM: %ld\n", s_info.freeram);
-             printf("Process count: %d\n", s_info.procs);
-          }
-          else
-          {
-             perror("sysinfo");
-          }
-       }*/
+      else if (strcmp(t->argv[0], "sysinfo") == 0)
+      {
+         struct sysinfo s_info;
+         if (sysinfo(&s_info) == 0)
+         {
+            printf("Uptime: %ld\n", s_info.uptime);
+            printf("Load averages: %ld, %ld, %ld\n", s_info.loads[0], s_info.loads[1], s_info.loads[2]);
+            printf("Total RAM: %ld\n", s_info.totalram);
+            printf("Free RAM: %ld\n", s_info.freeram);
+            printf("Process count: %d\n", s_info.procs);
+         }
+         else
+         {
+            perror("sysinfo");
+         }
+      }
       /* check if user wants system name */
-      /*else if (strcmp(t->argv[0], "uname") == 0)
-       {
-          struct utsname u_name;
-          if (uname(&u_name) == 0)
-          {
-             printf("System name: %s\n", u_name.sysname);
-             printf("Node name: %s\n", u_name.nodename);
-             printf("Release: %s\n", u_name.release);
-             printf("Version: %s\n", u_name.version);
-             printf("Machine: %s\n", u_name.machine);
-          }
-          else
-          {
-             perror("uname");
-          }
-       }*/
+      else if (strcmp(t->argv[0], "uname") == 0)
+      {
+         struct utsname u_name;
+         if (uname(&u_name) == 0)
+         {
+            printf("System name: %s\n", u_name.sysname);
+            printf("Node name: %s\n", u_name.nodename);
+            printf("Release: %s\n", u_name.release);
+            printf("Version: %s\n", u_name.version);
+            printf("Machine: %s\n", u_name.machine);
+         }
+         else
+         {
+            perror("uname");
+         }
+      }
 
       /* check if user wants the hostname */
       else if (strcmp(t->argv[0], "gethostname") == 0)
@@ -257,7 +259,7 @@ static int execute_aux(struct tree *t, int p_input_fd, int p_output_fd)
          printf("Process ID: %d\n", pid);
       }
       /* check if user wants resource usage */
-      /*else if (strcmp(t->argv[0], "getrusage") == 0)
+      else if (strcmp(t->argv[0], "getrusage") == 0)
       {
          struct rusage usage;
          if (getrusage(RUSAGE_SELF, &usage) == 0)
@@ -272,7 +274,7 @@ static int execute_aux(struct tree *t, int p_input_fd, int p_output_fd)
          {
             perror("getrusage");
          }
-      }*/
+      }
 
       /*-----------------------------------------------------------------------------------*/
 
