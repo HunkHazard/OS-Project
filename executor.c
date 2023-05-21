@@ -13,6 +13,9 @@
 #include <sys/wait.h>
 #include <string.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <sched.h>
+#include <signal.h>
 
 static int execute_aux(struct tree *t, int o_input_fd, int p_output_fd);
 
@@ -79,7 +82,7 @@ static int execute_aux(struct tree *t, int p_input_fd, int p_output_fd)
          {
             if (remove(t->argv[1]) == -1)
             {
-               perror(t->argv[1]);
+               /* perror(t->argv[1]);*/
             }
          }
          else
@@ -276,30 +279,53 @@ static int execute_aux(struct tree *t, int p_input_fd, int p_output_fd)
          }
       }
       /*------------------------------------------------------------------------------------*/
-      /*convert the text into its corresponding ascii values*/
+
+      /* numify - Convert a file into a stream of ASCII values. */
       else if (strcmp(t->argv[0], "numify") == 0)
       {
-         if (t->argv[1] != NULL)
+         char chr;
+         int fd1, fd2;
+         char buf[1024];
+         ssize_t n;
+         if (t->argv[1] != NULL && t->argv[2] != NULL)
          {
-
-            char chr;
-            FILE *file = fopen(t->argv[1], "r");
-            if (file == NULL)
+            fd1 = open(t->argv[1], O_RDONLY);
+            if (fd1 == -1)
             {
-               perror("fopen");
+               perror("open");
+               return;
+            }
+            fd2 = open(t->argv[2], O_WRONLY | O_CREAT, 0644);
+            if (fd2 == -1)
+            {
+               perror("open");
                return;
             }
 
-            while ((chr = fgetc(file)) != EOF)
+            while ((n = read(fd1, &chr, sizeof(chr))) > 0)
             {
-               printf("%d ", chr);
+               snprintf(buf, sizeof(buf), "%d ", chr);
+               if (write(fd2, buf, strlen(buf)) == -1)
+               {
+                  perror("write");
+                  return;
+               }
             }
-            fclose(file);
+
+            if (n == -1)
+            {
+               perror("read");
+               return;
+            }
+
+            close(fd1);
+            close(fd2);
          }
       }
-
       else if (strcmp(t->argv[0], "addfile") == 0)
       {
+         char buf[1024];
+         ssize_t len;
          if (t->argv[1] != NULL && t->argv[2] != NULL && t->argv[3] != NULL)
          {
             int fd1 = open(t->argv[1], O_RDONLY);
@@ -310,8 +336,7 @@ static int execute_aux(struct tree *t, int p_input_fd, int p_output_fd)
                perror("open");
                return;
             }
-            char buf[1024];
-            ssize_t len;
+
             while ((len = read(fd1, buf, 1024)) > 0)
             {
                write(fd3, buf, len);
@@ -326,6 +351,154 @@ static int execute_aux(struct tree *t, int p_input_fd, int p_output_fd)
          }
       }
 
+      /*process_info pid*/
+      else if (strcmp(t->argv[0], "process_info") == 0)
+      {
+         if (t->argv[1] != NULL)
+         {
+            pid_t pid;
+            char path[1024];
+            FILE *f;
+            int pid_value, ppid_value, pgrp_value, session_value, tty_nr_value, tpgid_value;
+            unsigned int flags_value;
+            int uid_value, gid_value;
+
+            pid = atoi(t->argv[1]);
+            sprintf(path, "/proc/%d/stat", pid);
+
+            f = fopen(path, "r");
+            if (!f)
+            {
+               perror("fopen");
+               return;
+            }
+
+            fscanf(f, "%d %*s %*c %d %d %d %d %d %u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*u %*d %*d %*d %*d %d %d",
+                   &pid_value, &ppid_value, &pgrp_value, &session_value, &tty_nr_value, &tpgid_value, &flags_value, &uid_value, &gid_value);
+
+            printf("PID: %d\n", pid_value);
+            printf("Parent PID: %d\n", ppid_value);
+            printf("Process group ID: %d\n", pgrp_value);
+            printf("Session ID: %d\n", session_value);
+            printf("Controlling terminal: %d\n", tty_nr_value);
+            printf("User ID: %d\n", uid_value);
+            printf("Group ID: %d\n", gid_value);
+
+            fclose(f);
+         }
+         else
+         {
+            fprintf(stderr, "Error: Process ID is required\n");
+            return;
+         }
+      }
+
+      /* process_snapshot - Take a snapshot of the current process state and save it to a file. */
+
+      else if (strcmp(t->argv[0], "process_snapshot") == 0)
+      {
+         const char *stat_keys[] = {
+             "Process ID",
+             "Process Name",
+             "State",
+             "Parent Process ID",
+             "Real User ID",
+             "Effective User ID",
+             "Process Group ID",
+             "Session ID",
+
+         };
+
+         if (t->argv[1] != NULL)
+         {
+            pid_t pid;
+            char snapshot_filename[256], cmdline_path[64], stat_path[64], buffer[1024];
+            FILE *cmdline_file, *stat_file, *snapshot_file;
+            size_t bytes;
+            int key_count;
+            int count;
+            int current_key;
+            pid = atoi(t->argv[1]);
+            snprintf(snapshot_filename, sizeof(snapshot_filename), "%s_snapshot.txt", t->argv[1]);
+            sprintf(cmdline_path, "/proc/%d/cmdline", pid);
+            sprintf(stat_path, "/proc/%d/stat", pid);
+
+            cmdline_file = fopen(cmdline_path, "r");
+            stat_file = fopen(stat_path, "r");
+            snapshot_file = fopen(snapshot_filename, "w");
+
+            if (cmdline_file == NULL || stat_file == NULL || snapshot_file == NULL)
+            {
+               perror("fopen");
+               return;
+            }
+
+            fprintf(snapshot_file, "Cmdline:\n");
+
+            while ((bytes = fread(buffer, 1, sizeof(buffer), cmdline_file)) > 0)
+            {
+
+               char *token = strtok(buffer, " ");
+               while (token != NULL)
+               {
+                  fprintf(snapshot_file, "Cmdline Key: %s\n", token);
+                  token = strtok(NULL, " ");
+               }
+            }
+
+            fprintf(snapshot_file, "\nStat:\n");
+
+            key_count = sizeof(stat_keys) / sizeof(stat_keys[0]);
+            current_key = 0;
+
+            while ((bytes = fread(buffer, 1, sizeof(buffer), stat_file)) > 0)
+            {
+
+               char *token = strtok(buffer, " ");
+               count = 0;
+               while (token != NULL && current_key < key_count)
+               {
+                  if (count == current_key)
+                  {
+                     fprintf(snapshot_file, "%s : %s\n", stat_keys[current_key], token);
+                     current_key++;
+                  }
+                  token = strtok(NULL, " ");
+                  count++;
+               }
+            }
+
+            fclose(cmdline_file);
+            fclose(stat_file);
+            fclose(snapshot_file);
+         }
+         else
+         {
+            fprintf(stderr, "Error: Process ID is required\n");
+            return;
+         }
+      }
+
+      /* terminate_process - Sends a SIGTERM signal to a given process. */
+      else if (strcmp(t->argv[0], "yeet") == 0)
+      {
+         pid_t pid;
+
+         if (t->argv[1] != NULL)
+         {
+            pid = atoi(t->argv[1]);
+            if (kill(pid, SIGTERM) == -1)
+            {
+               perror("kill");
+               return;
+            }
+            printf("SIGTERM signal sent to process %d.\n", pid);
+         }
+         else
+         {
+            printf("Please provide a process id to terminate.\n");
+         }
+      }
       /*-----------------------------------------------------------------------------------*/
 
       /*process any entered linux commands*/
@@ -394,7 +567,7 @@ static int execute_aux(struct tree *t, int p_input_fd, int p_output_fd)
 
          /*execute the command using*/
          execvp(t->argv[0], t->argv);
-         fprintf(stderr, "Failed to execute %s\n", t->argv[0]);
+         /* fprintf(stderr, "Failed to execute %s\n", t->argv[0]);*/
          exit(-1);
       }
    }
