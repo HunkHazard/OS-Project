@@ -86,6 +86,124 @@ static int execute_aux(struct tree *t, int p_input_fd, int p_output_fd)
          }
       }
 
+      /* check if user wants to print working directory, if so print it */
+      else if (strcmp(t->argv[0], "pwd") == 0)
+      {
+         char cwd[1024];
+         if (getcwd(cwd, sizeof(cwd)) != NULL)
+         {
+            printf("%s\n", cwd);
+         }
+         else
+         {
+            perror("pwd");
+         }
+      }
+
+      /* check if user wants to create a file, if so create it */
+      else if (strcmp(t->argv[0], "touch") == 0)
+      {
+         if (t->argv[1] != NULL)
+         {
+            int fd = open(t->argv[1], O_WRONLY | O_CREAT | O_NOCTTY | O_NONBLOCK, 0666);
+            if (fd == -1)
+            {
+               perror(t->argv[1]);
+            }
+            else
+            {
+               close(fd);
+            }
+         }
+         else
+         {
+            fprintf(stderr, "touch: missing file operand\n");
+         }
+      }
+
+      /* check if user wants to print the first 10 lines of a file, if so print them */
+      /* else if (strcmp(t->argv[0], "head") == 0)
+       {
+          if (t->argv[1] != NULL)
+          {
+             FILE *file = fopen(t->argv[1], "r");
+             if (file == NULL)
+             {
+                perror(t->argv[1]);
+             }
+             else
+             {
+                char line[256];
+                for (int i = 0; i < 10; i++)
+                {
+                   if (fgets(line, sizeof(line), file) == NULL)
+                   {
+                      break;
+                   }
+                   printf("%s", line);
+                }
+                fclose(file);
+             }
+          }
+          else
+          {
+             fprintf(stderr, "head: missing file operand\n");
+          }
+       }*/
+
+      /* check if user wants to rename/move a file, if so do it */
+      else if (strcmp(t->argv[0], "mv") == 0)
+      {
+         if (t->argv[1] != NULL && t->argv[2] != NULL)
+         {
+            if (rename(t->argv[1], t->argv[2]) == -1)
+            {
+               perror("mv");
+            }
+         }
+         else
+         {
+            fprintf(stderr, "mv: missing file operand\n");
+         }
+      }
+
+      /* check if user wants to copy a file, if so do it */
+      else if (strcmp(t->argv[0], "cp") == 0)
+      {
+         if (t->argv[1] != NULL && t->argv[2] != NULL)
+         {
+            FILE *source_file = fopen(t->argv[1], "r");
+            if (source_file == NULL)
+            {
+               perror(t->argv[1]);
+            }
+            else
+            {
+               FILE *destination_file = fopen(t->argv[2], "w");
+               if (destination_file == NULL)
+               {
+                  perror(t->argv[2]);
+               }
+               else
+               {
+                  char c;
+                  while ((c = fgetc(source_file)) != EOF)
+                  {
+                     fputc(c, destination_file);
+                  }
+                  fclose(destination_file);
+               }
+               fclose(source_file);
+            }
+         }
+         else
+         {
+            fprintf(stderr, "cp: missing file operand\n");
+         }
+      }
+
+      /*-----------------------------------------------------------------------------------*/
+
       /*process any entered linux commands*/
       if ((pid = fork()) < 0)
       {
