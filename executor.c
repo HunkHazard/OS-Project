@@ -1,4 +1,4 @@
-
+#include <ctype.h>
 #include <sys/sysinfo.h>
 #include <sys/utsname.h>
 #include <sys/resource.h>
@@ -499,6 +499,42 @@ static int execute_aux(struct tree *t, int p_input_fd, int p_output_fd)
             printf("Please provide a process id to terminate.\n");
          }
       }
+
+      else if (strcmp(t->argv[0], "wordcount") == 0)
+      {
+         char ch;
+         if (t->argv[1] != NULL)
+         {
+            int words;
+            int in_word = 0; /* replace bool with int */
+            int fd = open(t->argv[1], O_RDONLY);
+
+            if (fd == -1)
+            {
+               perror("open");
+               return;
+            }
+
+            words = 0;
+
+            while (read(fd, &ch, 1) > 0)
+            {
+               if (isspace(ch))
+               {
+                  in_word = 0;
+               }
+               else if (!in_word)
+               {
+                  in_word = 1;
+                  words++;
+               }
+            }
+
+            printf("%d\n", words);
+            close(fd);
+         }
+      }
+
       /*-----------------------------------------------------------------------------------*/
 
       /*process any entered linux commands*/
